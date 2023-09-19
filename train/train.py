@@ -52,7 +52,7 @@ class Train:
             self.model.train()
             train_loss = []
             iter_count = 0
-            pbar = tqdm(enumerate(loader), total=len(loader))
+            pbar = tqdm(enumerate(train_loader), total=train_steps)
             for i, (x, y, r, t) in pbar:
                 iter_count += 1
                 # place data on the correct device
