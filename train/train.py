@@ -23,7 +23,7 @@ class Train:
         return model
 
     def _get_data(self):
-        data_set = STAR_Dataset(self.args.data_path, self.args.block_size)
+        data_set = STAR_Dataset(self.args.data_path, self.args.block_size, self.args.if_total_rtg)
         data_loader = DataLoader(data_set, batch_size=self.args.batch_size, drop_last=self.args.drop_last)
         return data_set, data_loader
 
@@ -78,7 +78,7 @@ class Train:
                         lr_mult = float(self.tokens) / float(max(1, self.args.warmup))
                     else:
                         # cosine learning rate decay
-                        progress = float(self.tokens - self.args.warmup) / float(max(1, self.args.final_tokens - self.args.warmup_tokens))
+                        progress = float(self.tokens - self.args.warmup) / float(max(1, self.args.final_tokens - self.args.warmup))
                         lr_mult = max(0.1, 0.5 * (1.0 + math.cos(math.pi * progress)))
                     lr = self.args.learning_rate * lr_mult
                     for param_group in model_optim.param_groups:
@@ -97,6 +97,4 @@ class Train:
             train_loss = np.average(train_loss)
             print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f}".format(epoch + 1, train_steps, train_loss))
             self._save_model(train_loss, path + 'best.pth')
-
-
-
+        self._save_model(train_loss, path + 'latest.pth')
