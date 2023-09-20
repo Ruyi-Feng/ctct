@@ -1,7 +1,9 @@
 import math
 from net.model_atari import GPT
 import numpy as np
+import os
 import torch
+from torch.nn import functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import LambdaLR
 from train.dataloader import STAR_Dataset
@@ -9,7 +11,7 @@ from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
 
 
-class Train:
+class Exp:
     def __init__(self, args):
         self.args = args
         self.best_score = None
@@ -20,11 +22,16 @@ class Train:
 
     def _build_model(self):
         model = GPT(self.args).float().to(self.device)
+        if os.path.exists(self.args.save_path + 'checkpoint_best.pth'):
+            model.load_state_dict(torch.load(self.args.save_path + 'checkpoint_best.pth', map_location=torch.device(self.device)))
+        elif os.path.exists(self.args.save_path + 'checkpoint_last.pth'):
+            model.load_state_dict(torch.load(self.args.save_path + 'checkpoint_last.pth', map_location=torch.device(self.device)))
         return model
 
-    def _get_data(self):
+    def _get_data(self, batch=None):
+        b_sz = batch if batch is not None else self.args.batch_size
         data_set = STAR_Dataset(self.args.data_path, self.args.block_size, self.args.if_total_rtg)
-        data_loader = DataLoader(data_set, batch_size=self.args.batch_size, drop_last=self.args.drop_last)
+        data_loader = DataLoader(data_set, batch_size=b_sz, drop_last=self.args.drop_last)
         return data_set, data_loader
 
     def _select_optimizer(self):
@@ -83,10 +90,48 @@ class Train:
                 else:
                     lr = -1
 
-                if (i + 1) % 200 == 1:
+                if (i + 1) % 50 == 1:
                     pbar.set_description("loss: {0:.7f}".format(loss.item()))
 
             train_loss = np.average(train_loss)
             print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f}".format(epoch + 1, train_steps, train_loss))
             self._save_model(train_loss, path + 'best.pth')
         self._save_model(train_loss, path + 'latest.pth')
+
+    def _get_action(self, logits, top_k=None):
+        logits = logits[:, -1, :] / 1.0
+        if top_k is not None:
+            logits = self.top_k_logits(logits, top_k)
+        probs = F.softmax(logits, dim=-1)
+        _, ix = torch.topk(probs, k=1, dim=-1)
+        return ix
+
+    def top_k_logits(self, logits, k):
+        v, ix = torch.topk(logits, k)
+        out = logits.clone()
+        out[out < v[:, [-1]]] = -float('Inf')
+        return out
+
+    def test(self):
+        _, test_loader = self._get_data(batch=1)
+        self.model.eval()
+        test_loss = []
+        true = 0
+        total = 30
+        top_k = self.args.top_k
+        for i, (x, y, r, t) in enumerate(test_loader):
+            x = x.to(self.device)
+            y = y.to(self.device)
+            r = r.to(self.device)
+            t = t.to(self.device)
+            logits, _ = self.model(x, y, None, r, t)
+            tk = self.args.top_k if self.args.top_k != 0 else None
+            action = self._get_action(logits, tk)
+            print("------test:%d ------"%i)
+            print("pred:", action)
+            print("gdth:", y[:, -1, :])
+            if action.item() == y[:, -1, :].item():
+                true += 1
+            if i > total:
+                break
+        print("acc: {0:.7f}".format(true/total))
