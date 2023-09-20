@@ -1,3 +1,4 @@
+import math
 from net.model_atari import GPT
 import numpy as np
 import torch
@@ -61,13 +62,13 @@ class Train:
                 r = r.to(self.device)
                 t = t.to(self.device)
 
-                logits, loss = model(x, y, y, r, t)
+                logits, loss = self.model(x, y, y, r, t)
                 loss = loss.mean() # collapse all losses if they are scattered on multiple gpus
                 train_loss.append(loss.item())
 
-                model.zero_grad()
+                self.model.zero_grad()
                 loss.backward()
-                torch.nn.utils.clip_grad_norm_(model.parameters(), self.args.grad_norm_clip)
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.args.grad_norm_clip)
                 model_optim.step()
                 scheduler.step()
 
