@@ -37,7 +37,7 @@ class STAR_Dataset(Dataset):
     def _rwd2rtg(self, rwd: np.array) -> np.array:
         rtg = []
         [rtg.append(sum(rwd[i:])) for i in range(len(rwd))]
-        return np.array(rtg)
+        return np.expand_dims(np.array(rtg), axis=1).astype(np.float32)
 
     def _load_data(self, path: str, start: int=-1, end: int=-1) -> tuple:
         # Step,
@@ -59,10 +59,10 @@ class STAR_Dataset(Dataset):
             data.append(line)
         data = np.array(data)
         states = data[:, 1:7].astype(np.float32)
-        timesteps = data[:, 0].astype(np.int64).unsqueeze(1)
-        actions = data[:, 7].astype(np.int64).unsqueeze(1)
+        timesteps = np.expand_dims(data[:, 0], axis=1).astype(np.int64)
+        actions = np.expand_dims(data[:, 7], axis=1).astype(np.int64)
         if self.if_total_rtg:
-            rtg = data[:, 9].astype(np.float32).unsqueeze(1)
+            rtg = np.expand_dims(data[:, 9], axis=1).astype(np.float32)
         else:
             rwd = data[:, 8].astype(np.float32)
             rtg = self._rwd2rtg(rwd)
