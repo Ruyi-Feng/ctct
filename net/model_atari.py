@@ -1,12 +1,3 @@
-"""
-The MIT License (MIT) Copyright (c) 2020 Andrej Karpathy
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-"""
 
 """
 GPT model:
@@ -38,24 +29,24 @@ class CausalSelfAttention(nn.Module):
     explicit implementation here to show that there is nothing too scary here.
     """
 
-    def __init__(self, config):
+    def __init__(self, args):
         super().__init__()
-        assert config.d_model % config.n_head == 0
+        assert args.d_model % args.n_head == 0
         # key, query, value projections for all heads
-        self.key = nn.Linear(config.d_model, config.d_model)
-        self.query = nn.Linear(config.d_model, config.d_model)
-        self.value = nn.Linear(config.d_model, config.d_model)
+        self.key = nn.Linear(args.d_model, args.d_model)
+        self.query = nn.Linear(args.d_model, args.d_model)
+        self.value = nn.Linear(args.d_model, args.d_model)
         # regularization
-        self.attn_drop = nn.Dropout(config.attn_pdrop)
-        self.resid_drop = nn.Dropout(config.resid_pdrop)
+        self.attn_drop = nn.Dropout(args.attn_pdrop)
+        self.resid_drop = nn.Dropout(args.resid_pdrop)
         # output projection
-        self.proj = nn.Linear(config.d_model, config.d_model)
+        self.proj = nn.Linear(args.d_model, args.d_model)
         # causal mask to ensure that attention is only applied to the left in the input sequence
-        # self.register_buffer("mask", torch.tril(torch.ones(config.block_size, config.block_size))
-        #                              .view(1, 1, config.block_size, config.block_size))
-        self.register_buffer("mask", torch.tril(torch.ones(config.block_size + 1, config.block_size + 1))
-                                     .view(1, 1, config.block_size + 1, config.block_size + 1))
-        self.n_head = config.n_head
+        # self.register_buffer("mask", torch.tril(torch.ones(args.block_size, args.block_size))
+        #                              .view(1, 1, args.block_size, args.block_size))
+        self.register_buffer("mask", torch.tril(torch.ones(args.block_size + 1, args.block_size + 1))
+                                     .view(1, 1, args.block_size + 1, args.block_size + 1))
+        self.n_head = args.n_head
 
     def forward(self, x, layer_past=None):
         B, T, C = x.size()
@@ -80,16 +71,16 @@ class CausalSelfAttention(nn.Module):
 class Block(nn.Module):
     """ an unassuming Transformer block """
 
-    def __init__(self, config):
+    def __init__(self, args):
         super().__init__()
-        self.ln1 = nn.LayerNorm(config.d_model)
-        self.ln2 = nn.LayerNorm(config.d_model)
-        self.attn = CausalSelfAttention(config)
+        self.ln1 = nn.LayerNorm(args.d_model)
+        self.ln2 = nn.LayerNorm(args.d_model)
+        self.attn = CausalSelfAttention(args)
         self.mlp = nn.Sequential(
-            nn.Linear(config.d_model, 4 * config.d_model),
+            nn.Linear(args.d_model, 4 * args.d_model),
             GELU(),
-            nn.Linear(4 * config.d_model, config.d_model),
-            nn.Dropout(config.resid_pdrop),
+            nn.Linear(4 * args.d_model, args.d_model),
+            nn.Dropout(args.resid_pdrop),
         )
 
     def forward(self, x):
@@ -100,45 +91,34 @@ class Block(nn.Module):
 class GPT(nn.Module):
     """  the full GPT language model, with a context size of block_size """
 
-    def __init__(self, config):
+    def __init__(self, args):
         super().__init__()
-
-        self.config = config
-
-        self.model_type = config.model_type
-
-        # input embedding stem
-        self.tok_emb = nn.Embedding(config.vocab_size, config.d_model)
-        # self.pos_emb = nn.Parameter(torch.zeros(1, config.block_size, config.d_model))
-        self.pos_emb = nn.Parameter(torch.zeros(1, config.block_size + 1, config.d_model))
-        self.global_pos_emb = nn.Parameter(torch.zeros(1, config.max_timestep+1, config.d_model))
-        self.drop = nn.Dropout(config.embd_pdrop)
-
+        self.args = args
+        self.mt = args.model_type
+        # self.pos_emb = nn.Parameter(torch.zeros(1, args.block_size, args.d_model))
+        self.pos_emb = nn.Parameter(torch.zeros(1, args.block_size + 1, args.d_model))
+        self.global_pos_emb = nn.Parameter(torch.zeros(1, args.max_timestep+1, args.d_model))
+        self.drop = nn.Dropout(args.embd_pdrop)
         # transformer
-        self.blocks = nn.Sequential(*[Block(config) for _ in range(config.n_layer)])
+        self.blocks = nn.Sequential(*[Block(args) for _ in range(args.n_layer)])
         # decoder head
-        self.ln_f = nn.LayerNorm(config.d_model)
-        self.head = nn.Linear(config.d_model, config.vocab_size, bias=False)
-
-        self.block_size = config.block_size
+        self.ln_f = nn.LayerNorm(args.d_model)
+        self.head = nn.Linear(args.d_model, args.vocab_size, bias=False)
         self.apply(self._init_weights)
-
-
-        logger.info("number of parameters: %e", sum(p.numel() for p in self.parameters()))
-
-
-        self.state_encoder = nn.Sequential(nn.Conv2d(4, 32, 8, stride=4, padding=0), nn.ReLU(),
-                                 nn.Conv2d(32, 64, 4, stride=2, padding=0), nn.ReLU(),
-                                 nn.Conv2d(64, 64, 3, stride=1, padding=0), nn.ReLU(),
-                                 nn.Flatten(), nn.Linear(3136, config.d_model), nn.Tanh())
-
-        self.ret_emb = nn.Sequential(nn.Linear(1, config.d_model), nn.Tanh())
-
-        self.action_embeddings = nn.Sequential(nn.Embedding(config.vocab_size, config.d_model), nn.Tanh())
-        nn.init.normal_(self.action_embeddings[0].weight, mean=0.0, std=0.02)
+        self.state_emb = nn.Conv1d(in_channels=6,
+                                   out_channels=args.d_model,
+                                   kernel_size=3,
+                                   padding=0,
+                                   padding_mode='circular',
+                                   bias=False)
+        self.ret_emb = nn.Sequential(nn.Linear(1, config.n_embd),
+                                     nn.Tanh())
+        self.act_emb = nn.Sequential(nn.Embedding(config.vocab_size, config.d_model),
+                                     nn.Tanh())
+        nn.init.normal_(self.act_emb[0].weight, mean=0.0, std=0.02)
 
     def get_block_size(self):
-        return self.block_size
+        return self.args.block_size
 
     def _init_weights(self, module):
         if isinstance(module, (nn.Linear, nn.Embedding)):
@@ -149,7 +129,7 @@ class GPT(nn.Module):
             module.bias.data.zero_()
             module.weight.data.fill_(1.0)
 
-    def configure_optimizers(self, train_config):
+    def argsure_optimizers(self, train_args):
         """
         This long function is unfortunately doing something very simple and is being very defensive:
         We are separating out all parameters of the model into two buckets: those that will experience
@@ -191,74 +171,78 @@ class GPT(nn.Module):
 
         # create the pytorch optimizer object
         optim_groups = [
-            {"params": [param_dict[pn] for pn in sorted(list(decay))], "weight_decay": train_config.weight_decay},
+            {"params": [param_dict[pn] for pn in sorted(list(decay))], "weight_decay": train_args.weight_decay},
             {"params": [param_dict[pn] for pn in sorted(list(no_decay))], "weight_decay": 0.0},
         ]
-        optimizer = torch.optim.AdamW(optim_groups, lr=train_config.learning_rate, betas=train_config.betas)
+        optimizer = torch.optim.AdamW(optim_groups, lr=train_args.learning_rate, betas=train_args.betas)
         return optimizer
 
     # state, action, and return
-    def forward(self, states, actions, targets=None, rtgs=None, timesteps=None):
-        # states: (batch, block_size, 4*84*84)
-        # actions: (batch, block_size, 1)
-        # targets: (batch, block_size, 1)
+    def forward(self, s, a, t=None, rtgs=None, timesteps=None):
+        # s: (batch, block_size, 6)
+        # a: (batch, block_size, 1)
+        # t: (batch, block_size, 1)
         # rtgs: (batch, block_size, 1)
         # timesteps: (batch, 1, 1)
 
 
         # !!!!!---- !!!state_encoder
-        state_embeddings = self.state_encoder(states.reshape(-1, 4, 84, 84).type(torch.float32).contiguous()) # (batch * block_size, d_model)
-        state_embeddings = state_embeddings.reshape(states.shape[0], states.shape[1], self.config.d_model) # (batch, block_size, d_model)
+        state_embds = self.state_emb(s.permute(0, 2, 1)).permute(0, 2, 1)
+        if a is not None and self.mt == 'reward_conditioned':
+            rtg_embds = self.ret_emb(rtgs.type(torch.float32))
+            act_embs = self.act_emb(a.type(torch.long).squeeze(-1)) # (batch, block_size, d_model)
 
-        if actions is not None and self.model_type == 'reward_conditioned':
-            rtg_embeddings = self.ret_emb(rtgs.type(torch.float32))
-            action_embeddings = self.action_embeddings(actions.type(torch.long).squeeze(-1)) # (batch, block_size, d_model)
-
-            token_embeddings = torch.zeros((states.shape[0], states.shape[1]*3 - int(targets is None), self.config.d_model), dtype=torch.float32, device=state_embeddings.device)
-            token_embeddings[:,::3,:] = rtg_embeddings
-            token_embeddings[:,1::3,:] = state_embeddings
-            token_embeddings[:,2::3,:] = action_embeddings[:,-states.shape[1] + int(targets is None):,:]
-        elif actions is None and self.model_type == 'reward_conditioned': # only happens at very first timestep of evaluation
-            rtg_embeddings = self.ret_emb(rtgs.type(torch.float32))
-
-            token_embeddings = torch.zeros((states.shape[0], states.shape[1]*2, self.config.d_model), dtype=torch.float32, device=state_embeddings.device)
-            token_embeddings[:,::2,:] = rtg_embeddings # really just [:,0,:]
-            token_embeddings[:,1::2,:] = state_embeddings # really just [:,1,:]
-        elif actions is not None and self.model_type == 'naive':
-            action_embeddings = self.action_embeddings(actions.type(torch.long).squeeze(-1)) # (batch, block_size, d_model)
-
-            token_embeddings = torch.zeros((states.shape[0], states.shape[1]*2 - int(targets is None), self.config.d_model), dtype=torch.float32, device=state_embeddings.device)
-            token_embeddings[:,::2,:] = state_embeddings
-            token_embeddings[:,1::2,:] = action_embeddings[:,-states.shape[1] + int(targets is None):,:]
-        elif actions is None and self.model_type == 'naive': # only happens at very first timestep of evaluation
-            token_embeddings = state_embeddings
+            tokens = torch.zeros((s.shape[0], s.shape[1]*3 - int(t is None),
+                                 self.args.d_model),
+                                 dtype=torch.float32,
+                                 device=state_embds.device)
+            tokens[:,::3,:] = rtg_embds
+            tokens[:,1::3,:] = state_embds
+            tokens[:,2::3,:] = act_embs[:,-s.shape[1] + int(t is None):,:]
+        elif a is None and self.mt == 'reward_conditioned': # only happens at very first timestep of evaluation
+            rtg_embds = self.ret_emb(rtgs.type(torch.float32))
+            tokens = torch.zeros((s.shape[0], s.shape[1]*2, self.args.d_model),
+                                 dtype=torch.float32,
+                                 device=state_embds.device)
+            tokens[:,::2,:] = rtg_embds # really just [:,0,:]
+            tokens[:,1::2,:] = state_embds # really just [:,1,:]
+        elif a is not None and self.mt == 'naive':
+            act_embs = self.act_emb(a.type(torch.long).squeeze(-1)) # (batch, block_size, d_model)
+            tokens = torch.zeros((s.shape[0], s.shape[1]*2 - int(t is None),
+                                 self.args.d_model),
+                                 dtype=torch.float32,
+                                 device=state_embds.device)
+            tokens[:,::2,:] = state_embds
+            tokens[:,1::2,:] = act_embs[:,-s.shape[1] + int(t is None):,:]
+        elif a is None and self.mt == 'naive': # only happens at very first timestep of evaluation
+            tokens = state_embds
         else:
             raise NotImplementedError()
 
-        batch_size = states.shape[0]
+        batch_size = s.shape[0]
         all_global_pos_emb = torch.repeat_interleave(self.global_pos_emb, batch_size, dim=0) # batch_size, traj_length, d_model
 
-        position_embeddings = torch.gather(all_global_pos_emb, 1, torch.repeat_interleave(timesteps, self.config.d_model, dim=-1)) + self.pos_emb[:, :token_embeddings.shape[1], :]
+        position_embds = torch.gather(all_global_pos_emb, 1, torch.repeat_interleave(timesteps, self.args.d_model, dim=-1)) + self.pos_emb[:, :tokens.shape[1], :]
 
-        x = self.drop(token_embeddings + position_embeddings)
+        x = self.drop(tokens + position_embds)
         x = self.blocks(x)
         x = self.ln_f(x)
         logits = self.head(x)
 
-        if actions is not None and self.model_type == 'reward_conditioned':
-            logits = logits[:, 1::3, :] # only keep predictions from state_embeddings
-        elif actions is None and self.model_type == 'reward_conditioned':
+        if a is not None and self.mt == 'reward_conditioned':
+            logits = logits[:, 1::3, :] # only keep predictions from state_embds
+        elif a is None and self.mt == 'reward_conditioned':
             logits = logits[:, 1:, :]
-        elif actions is not None and self.model_type == 'naive':
-            logits = logits[:, ::2, :] # only keep predictions from state_embeddings
-        elif actions is None and self.model_type == 'naive':
+        elif a is not None and self.mt == 'naive':
+            logits = logits[:, ::2, :] # only keep predictions from state_embds
+        elif a is None and self.mt == 'naive':
             logits = logits # for completeness
         else:
             raise NotImplementedError()
 
-        # if we are given some desired targets also calculate the loss
+        # if we are given some desired t also calculate the loss
         loss = None
-        if targets is not None:
-            loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), targets.reshape(-1))
+        if t is not None:
+            loss = F.cross_entropy(logits.reshape(-1, logits.size(-1)), t.reshape(-1))
 
         return logits, loss
