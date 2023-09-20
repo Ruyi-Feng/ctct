@@ -222,7 +222,9 @@ class GPT(nn.Module):
         batch_size = s.shape[0]
         all_global_pos_emb = torch.repeat_interleave(self.global_pos_emb, batch_size, dim=0) # batch_size, traj_length, d_model
 
-        position_embds = torch.gather(all_global_pos_emb, 1, torch.repeat_interleave(timesteps, self.args.d_model, dim=-1)) + self.pos_emb[:, :tokens.shape[1], :]
+        position_embds = torch.gather(all_global_pos_emb,
+                                      1,
+                                      torch.repeat_interleave(timesteps, self.args.d_model, dim=-1)) + self.pos_emb[:, :tokens.shape[1], :]
 
         x = self.drop(tokens + position_embds)
         x = self.blocks(x)
