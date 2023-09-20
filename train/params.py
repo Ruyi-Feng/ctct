@@ -12,7 +12,7 @@ def params():
     # training settings
     parser.add_argument('--learning_rate', type=float, default=0.0001, help='original leaning rate')
     parser.add_argument('--train_epochs', type=int, default=10, help='total train epoch')
-    parser.add_argument('--batch_size', type=int, default=4, help='batch size')
+    parser.add_argument('--batch_size', type=int, default=64, help='batch size')
     parser.add_argument('--drop_last', type=bool, default=True)
     parser.add_argument('--if_total_rtg', type=bool, default=False, help='if True, using total rtg')
     parser.add_argument('--warmup', type=int, default=100, help='warmup steps')
