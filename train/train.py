@@ -7,7 +7,6 @@ from torch.optim.lr_scheduler import LambdaLR
 from train.dataloader import STAR_Dataset
 from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
-import time
 
 
 class Train:
@@ -37,10 +36,10 @@ class Train:
     def _save_model(self, latest_loss, path):
         if self.best_score is None:
             self.best_score = latest_loss
-            torch.save(self.model.module.state_dict(), path)
+            torch.save(self.model.state_dict(), path)
         elif latest_loss < self.best_score:
             self.best_score = latest_loss
-            torch.save(self.model.module.state_dict(), path)
+            torch.save(self.model.state_dict(), path)
 
     def train(self):
         self.tokens = 0 # counter used for learning rate decay
@@ -48,14 +47,11 @@ class Train:
         train_steps = len(train_loader)
         model_optim, scheduler = self._select_optimizer()
         path = self.args.save_path + 'checkpoint_'
-        time_now = time.time()
         for epoch in range(self.args.train_epochs):
             self.model.train()
             train_loss = []
-            iter_count = 0
             pbar = tqdm(enumerate(train_loader), total=train_steps)
             for i, (x, y, r, t) in pbar:
-                iter_count += 1
                 # place data on the correct device
                 x = x.to(self.device)
                 y = y.to(self.device)
@@ -87,13 +83,8 @@ class Train:
                 else:
                     lr = -1
 
-                if (i + 1) % 100 == 0:
-                    print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
-                    speed = (time.time() - time_now) / iter_count
-                    left_time = speed * ((self.args.train_epochs - epoch) * train_steps - i)
-                    print('\tspeed: {:.4f}s/iter; left time: {:.4f}s'.format(speed, left_time))
-                    iter_count = 0
-                    time_now = time.time()
+                if (i + 1) % 200 == 1:
+                    pbar.set_description("loss: {0:.7f}".format(loss.item()))
 
             train_loss = np.average(train_loss)
             print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f}".format(epoch + 1, train_steps, train_loss))
