@@ -194,7 +194,7 @@ class GPT(nn.Module):
                                  device=state_embds.device)
             tokens[:,::3,:] = rtg_embds
             tokens[:,1::3,:] = state_embds
-            tokens[:,2::3,:] = act_embs[:,-s.shape[1] + int(t is None):,:]
+            tokens[:,2::3,:] = act_embs[:,-s.shape[1] + int(t is None):, :]
         elif a is None and self.mt == 'reward_conditioned': # only happens at very first timestep of evaluation
             rtg_embds = self.ret_emb(rtgs.type(torch.float32))
             tokens = torch.zeros((s.shape[0], s.shape[1]*2, self.args.d_model),
@@ -209,7 +209,7 @@ class GPT(nn.Module):
                                  dtype=torch.float32,
                                  device=state_embds.device)
             tokens[:,::2,:] = state_embds
-            tokens[:,1::2,:] = act_embs[:,-s.shape[1] + int(t is None):,:]
+            tokens[:,1::2,:] = act_embs[:,-s.shape[1] + int(t is None):, :]
         elif a is None and self.mt == 'naive': # only happens at very first timestep of evaluation
             tokens = state_embds
         else:
