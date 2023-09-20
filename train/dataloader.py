@@ -58,11 +58,11 @@ class STAR_Dataset(Dataset):
             line = f.readline().split(',')
             data.append(line)
         data = np.array(data)
-        timesteps = data[:, 0].astype(np.int64)
         states = data[:, 1:7].astype(np.float32)
-        actions = data[:, 7].astype(np.int64)
+        timesteps = data[:, 0].astype(np.int64).unsqueeze(1)
+        actions = data[:, 7].astype(np.int64).unsqueeze(1)
         if self.if_total_rtg:
-            rtg = data[:, 9].astype(np.float32)
+            rtg = data[:, 9].astype(np.float32).unsqueeze(1)
         else:
             rwd = data[:, 8].astype(np.float32)
             rtg = self._rwd2rtg(rwd)
