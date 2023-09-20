@@ -42,10 +42,8 @@ class CausalSelfAttention(nn.Module):
         # output projection
         self.proj = nn.Linear(args.d_model, args.d_model)
         # causal mask to ensure that attention is only applied to the left in the input sequence
-        # self.register_buffer("mask", torch.tril(torch.ones(args.block_size, args.block_size))
-        #                              .view(1, 1, args.block_size, args.block_size))
-        self.register_buffer("mask", torch.tril(torch.ones(args.block_size + 1, args.block_size + 1))
-                                     .view(1, 1, args.block_size + 1, args.block_size + 1))
+        self.register_buffer("mask", torch.tril(torch.ones(args.block_size*3, args.block_size*3))
+                                     .view(1, 1, args.block_size*3, args.block_size*3))
         self.n_head = args.n_head
 
     def forward(self, x, layer_past=None):
@@ -96,8 +94,7 @@ class GPT(nn.Module):
         self.args = args
         self.mt = args.model_type
         # self.pos_emb = nn.Parameter(torch.zeros(1, args.block_size, args.d_model))
-        self.pos_emb = nn.Parameter(torch.zeros(1, args.block_size + 1, args.d_model))
-        self.global_pos_emb = nn.Parameter(torch.zeros(1, args.max_timestep+1, args.d_model))
+        self.pos_emb = nn.Parameter(torch.zeros(1, args.block_size * 3, args.d_model))
         self.drop = nn.Dropout(args.embd_pdrop)
         # transformer
         self.blocks = nn.Sequential(*[Block(args) for _ in range(args.n_layer)])
@@ -105,15 +102,16 @@ class GPT(nn.Module):
         self.ln_f = nn.LayerNorm(args.d_model)
         self.head = nn.Linear(args.d_model, args.vocab_size, bias=False)
         self.apply(self._init_weights)
+        pad = 1 if torch.__version__ >= '1.5.0' else 2
         self.state_emb = nn.Conv1d(in_channels=6,
                                    out_channels=args.d_model,
                                    kernel_size=3,
-                                   padding=0,
+                                   padding=pad,
                                    padding_mode='circular',
                                    bias=False)
-        self.ret_emb = nn.Sequential(nn.Linear(1, config.n_embd),
+        self.ret_emb = nn.Sequential(nn.Linear(1, args.d_model),
                                      nn.Tanh())
-        self.act_emb = nn.Sequential(nn.Embedding(config.vocab_size, config.d_model),
+        self.act_emb = nn.Sequential(nn.Embedding(args.vocab_size, args.d_model),
                                      nn.Tanh())
         nn.init.normal_(self.act_emb[0].weight, mean=0.0, std=0.02)
 
@@ -185,8 +183,6 @@ class GPT(nn.Module):
         # rtgs: (batch, block_size, 1)
         # timesteps: (batch, 1, 1)
 
-
-        # !!!!!---- !!!state_encoder
         state_embds = self.state_emb(s.permute(0, 2, 1)).permute(0, 2, 1)
         if a is not None and self.mt == 'reward_conditioned':
             rtg_embds = self.ret_emb(rtgs.type(torch.float32))
@@ -219,13 +215,7 @@ class GPT(nn.Module):
         else:
             raise NotImplementedError()
 
-        batch_size = s.shape[0]
-        all_global_pos_emb = torch.repeat_interleave(self.global_pos_emb, batch_size, dim=0) # batch_size, traj_length, d_model
-
-        position_embds = torch.gather(all_global_pos_emb,
-                                      1,
-                                      torch.repeat_interleave(timesteps, self.args.d_model, dim=-1)) + self.pos_emb[:, :tokens.shape[1], :]
-
+        position_embds = self.pos_emb[:, :tokens.shape[1], :]
         x = self.drop(tokens + position_embds)
         x = self.blocks(x)
         x = self.ln_f(x)
