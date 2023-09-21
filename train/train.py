@@ -31,7 +31,7 @@ class Exp:
     def _get_data(self, batch=None):
         b_sz = batch if batch is not None else self.args.batch_size
         data_set = STAR_Dataset(self.args.data_path, self.args.block_size, self.args.if_total_rtg)
-        data_loader = DataLoader(data_set, batch_size=b_sz, drop_last=self.args.drop_last)
+        data_loader = DataLoader(data_set, batch_size=b_sz, drop_last=self.args.drop_last, shuffle=True)
         return data_set, data_loader
 
     def _select_optimizer(self):
@@ -98,12 +98,15 @@ class Exp:
             self._save_model(train_loss, path + 'best.pth')
         self._save_model(train_loss, path + 'latest.pth')
 
-    def _get_action(self, logits, top_k=None):
+    def _get_action(self, logits, top_k=None, sample=True):
         logits = logits[:, -1, :] / 1.0
         if top_k is not None:
             logits = self.top_k_logits(logits, top_k)
         probs = F.softmax(logits, dim=-1)
-        _, ix = torch.topk(probs, k=1, dim=-1)
+        if sample:
+            ix = torch.multinomial(probs, num_samples=1)
+        else:
+            _, ix = torch.topk(probs, k=1, dim=-1)
         return ix
 
     def top_k_logits(self, logits, k):
@@ -117,7 +120,7 @@ class Exp:
         self.model.eval()
         test_loss = []
         true = 0
-        total = 30
+        total = 1000
         top_k = self.args.top_k
         for i, (x, y, r, t) in enumerate(test_loader):
             x = x.to(self.device)
@@ -126,7 +129,7 @@ class Exp:
             t = t.to(self.device)
             logits, _ = self.model(x, y, None, r, t)
             tk = self.args.top_k if self.args.top_k != 0 else None
-            action = self._get_action(logits, tk)
+            action = self._get_action(logits, tk, sample=True)
             print("------test:%d ------"%i)
             print("pred:", action)
             print("gdth:", y[:, -1, :])
