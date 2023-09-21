@@ -10,7 +10,7 @@ def params():
     parser.add_argument('--block_size', type=int, default=30, help='block_size = context_length')
 
     # training settings
-    parser.add_argument('--learning_rate', type=float, default=0.001, help='original leaning rate')
+    parser.add_argument('--learning_rate', type=float, default=0.0001, help='original leaning rate')
     parser.add_argument('--train_epochs', type=int, default=10, help='total train epoch')
     parser.add_argument('--batch_size', type=int, default=768, help='batch size')
     parser.add_argument('--drop_last', type=bool, default=True)
@@ -29,7 +29,7 @@ def params():
     parser.add_argument('--betas', type=tuple, default=(0.9, 0.95), help='')
     parser.add_argument('--grad_norm_clip', type=float, default=1.0, help='')
     parser.add_argument('--weight_decay', type=bool, default=False, help='only applied on matmul weights')
-    parser.add_argument('--lr_decay', type=bool, default=False, help='learning rate decay params: linear warmup followed by cosine decay to 10 percent of original')
+    parser.add_argument('--lr_decay', type=bool, default=True, help='learning rate decay params: linear warmup followed by cosine decay to 10 percent of original')
     parser.add_argument('--final_tokens', type=int, default=8000, help='lr adjust final of 0.1 original LR')
     parser.add_argument('--max_timestep', type=int, default=500, help='')
 
