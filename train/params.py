@@ -10,12 +10,12 @@ def params():
     parser.add_argument('--block_size', type=int, default=30, help='block_size = context_length')
 
     # training settings
-    parser.add_argument('--learning_rate', type=float, default=0.0001, help='original leaning rate')
+    parser.add_argument('--learning_rate', type=float, default=0.00001, help='original leaning rate')
     parser.add_argument('--train_epochs', type=int, default=10, help='total train epoch')
     parser.add_argument('--batch_size', type=int, default=768, help='batch size')
     parser.add_argument('--drop_last', type=bool, default=True)
     parser.add_argument('--if_total_rtg', type=bool, default=False, help='if True, using total rtg')
-    parser.add_argument('--warmup', type=int, default=500, help='warmup steps')
+    parser.add_argument('--warmup', type=int, default=200, help='warmup steps')
 
     # net settings
     parser.add_argument('--d_model', type=int, default=128, help='dimension of model')

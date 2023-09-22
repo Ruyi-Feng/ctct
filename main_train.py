@@ -6,4 +6,4 @@ if __name__ == '__main__':
     args = params()
     exp = Exp(args)
     exp.train()
-    # exp.test()
+    exp.test()
