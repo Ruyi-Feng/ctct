@@ -91,7 +91,7 @@ class Exp:
                     lr = -1
 
                 if (i + 1) % 50 == 1:
-                    pbar.set_description("loss: {0:.7f}".format(loss.item()))
+                    pbar.set_description("loss: {0:.7f}, lr: {1:.7f}".format(loss.item(), lr))
 
             train_loss = np.average(train_loss)
             print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f}".format(epoch + 1, train_steps, train_loss))
@@ -120,7 +120,7 @@ class Exp:
         self.model.eval()
         test_loss = []
         true = 0
-        total = 1000
+        total = 10000
         top_k = self.args.top_k
         for i, (x, y, r, t) in enumerate(test_loader):
             x = x.to(self.device)
@@ -130,9 +130,9 @@ class Exp:
             logits, _ = self.model(x, y, None, r, t)
             tk = self.args.top_k if self.args.top_k != 0 else None
             action = self._get_action(logits, tk, sample=True)
-            print("------test:%d ------"%i)
-            print("pred:", action)
-            print("gdth:", y[:, -1, :])
+            # print("------test:%d ------"%i)
+            # print("pred:", action)
+            # print("gdth:", y[:, -1, :])
             if action.item() == y[:, -1, :].item():
                 true += 1
             if i > total:
