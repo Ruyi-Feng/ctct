@@ -14,7 +14,7 @@ def params():
     parser.add_argument('--train_epochs', type=int, default=10, help='total train epoch')
     parser.add_argument('--batch_size', type=int, default=768, help='batch size')
     parser.add_argument('--drop_last', type=bool, default=True)
-    parser.add_argument('--if_total_rtg', type=bool, default=False, help='if True, using total rtg')
+    parser.add_argument('--if_total_rtg', type=bool, default=True, help='if True, using total rtg')
     parser.add_argument('--warmup', type=int, default=200, help='warmup steps')
 
     # net settings
