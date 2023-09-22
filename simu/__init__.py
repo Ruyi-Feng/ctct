@@ -21,7 +21,7 @@ class Simu:
         self.xlApp = Dispatch('Excel.Application')
         if os.path.exists(self.args.xlsm_path):
             print(" EEEEEEXISTS!!")
-        self.wb = self.xlApp.Workbooks.Open(self.args.xlsm_path)    
+        self.wb = self.xlApp.Workbooks.Open(self.args.xlsm_path)
         self.sheet = self.wb.Worksheets("Duanhui")
         self.SheetDen = self.wb.Worksheets("dtcdensity")
         self.xlApp.Visible = False
