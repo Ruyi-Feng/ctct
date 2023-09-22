@@ -1,12 +1,13 @@
 import argparse
 
 def params():
+    ###### simu params ######
     parser = argparse.ArgumentParser(description='transformer parameters')
 
     # simulation settings
-    parser.add_argument('--save_dir', type=str, default='./results/')
-    parser.add_argument('--episode_num', type=int, default=0)
-    parser.add_argument('--xlsm_path', type=str, default='./results/RM_near_train.xlsm')
+    parser.add_argument('--save_dir', type=str, default='G:\\code\\CTCT\\ctct\\results\\')
+    parser.add_argument('--episode_num', type=int, default=530)
+    parser.add_argument('--xlsm_path', type=str, default=r'G:\\code\\CTCT\\ctct\\results\\RM_near_train.xlsm')
 
     # constant settings
     parser.add_argument('--VBA_name_1', type=str, default='Sheet2.CommandButton1_Click')
