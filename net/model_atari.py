@@ -94,7 +94,7 @@ class GPT(nn.Module):
         self.args = args
         self.mt = args.model_type
         # self.pos_emb = nn.Parameter(torch.zeros(1, args.block_size, args.d_model))
-        self.pos_emb = nn.Parameter(torch.zeros(1, args.block_size * 3, args.d_model))
+        self.pos_emb = nn.Parameter(torch.zeros(1, (args.block_size) * 3, args.d_model))
         self.drop = nn.Dropout(args.embd_pdrop)
         # transformer
         self.blocks = nn.Sequential(*[Block(args) for _ in range(args.n_layer)])
