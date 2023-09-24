@@ -99,7 +99,7 @@ class Simu:
         x_t, y_t, rtg_t, t_t = self._format(s, a, r, t)
         logits, _ = self.model(x_t, y_t, None, rtg_t, t_t)   # batch, block_size, c_in
         tk = self.args.top_k if self.args.top_k != 0 else None
-        return self._get_action(logits, tk, sample=False)
+        return self._get_action(logits, tk, sample=True)
 
     def _update_historical_seq(self, observation: list, i: int, s: list, a: list, t: list) -> tuple:
         s.append(observation)

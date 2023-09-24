@@ -5,7 +5,7 @@ def params():
     # task settings
     parser.add_argument('--model_type', type=str, default='reward_conditioned')
     parser.add_argument('--save_path', type=str, default='./checkpoints/', help='location of model checkpoints')
-    parser.add_argument('--data_path', type=str, default='./data/')
+    parser.add_argument('--data_path', type=str, default='./data/upper16w/')
     parser.add_argument('--vocab_size', type=int, default=8, help='action vocab_size')
     parser.add_argument('--block_size', type=int, default=30, help='block_size = context_length')
 
@@ -14,7 +14,7 @@ def params():
     parser.add_argument('--train_epochs', type=int, default=10, help='total train epoch')
     parser.add_argument('--batch_size', type=int, default=768, help='batch size')
     parser.add_argument('--drop_last', type=bool, default=True)
-    parser.add_argument('--if_total_rtg', type=bool, default=True, help='if True, using total rtg')
+    parser.add_argument('--if_total_rtg', type=bool, default=False, help='if True, using total rtg')
     parser.add_argument('--warmup', type=int, default=200, help='warmup steps')
 
     # net settings

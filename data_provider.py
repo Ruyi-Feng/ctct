@@ -24,4 +24,4 @@ def deal_data(data_path) -> None:
             file_path = os.path.join(sub_dir_path, file_name)
             add_total_rtg(file_path)
 
-deal_data('./data/')
+deal_data('./data/upper16w/')
