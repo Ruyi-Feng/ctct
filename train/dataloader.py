@@ -8,9 +8,11 @@ class STAR_Dataset(Dataset):
     def __init__(self,
                  data_path: str,
                  block_size: int,
+                 c_in: int=5,
                  if_total_rtg: bool=False) -> None:
         self.data_path = data_path
         self.block_size = block_size
+        self.c_in = c_in
         self.index = []
         self.f_dict = {}
         self.if_total_rtg = if_total_rtg
@@ -58,7 +60,7 @@ class STAR_Dataset(Dataset):
             line = f.readline().split(',')
             data.append(line)
         data = np.array(data)
-        states = data[:, 1:7].astype(np.float32)
+        states = data[:, 1:(1+self.c_in)].astype(np.float32)   ## 1：6   1:7
         timesteps = np.expand_dims(data[:, 0], axis=1).astype(np.int64)
         actions = np.expand_dims(data[:, 7], axis=1).astype(np.int64)
         if self.if_total_rtg:

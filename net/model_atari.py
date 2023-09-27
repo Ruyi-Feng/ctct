@@ -103,12 +103,12 @@ class GPT(nn.Module):
         self.head = nn.Linear(args.d_model, args.vocab_size, bias=False)
         self.apply(self._init_weights)
         pad = 1 if torch.__version__ >= '1.5.0' else 2
-        self.state_emb = nn.Conv1d(in_channels=6,
+        self.state_emb = nn.Conv1d(in_channels=args.c_in,
                                    out_channels=args.d_model,
                                    kernel_size=3,
                                    padding=pad,
                                    padding_mode='circular',
-                                   bias=False)
+                                   bias=False)    # in_channels=6
         self.ret_emb = nn.Sequential(nn.Linear(1, args.d_model),
                                      nn.Tanh())
         self.act_emb = nn.Sequential(nn.Embedding(args.vocab_size, args.d_model),

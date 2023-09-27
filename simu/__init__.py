@@ -36,7 +36,7 @@ class Simu:
         den_down =(self.sheet.Cells(3, 4).Value) / 40.0
         den_rm2 = (self.sheet.Cells(3, 5).Value) / 350
         last_meter = self.sheet.Cells(3, 8).Value / 2.0
-        return [demand_GP, demand_ranp2, den_up, den_down, den_rm2, last_meter]
+        return [demand_GP, demand_ranp2, den_up, den_down, den_rm2, last_meter]  # , last_meter
 
     def _sim(self, a: int) -> tuple:
         nk = self.sheet.Cells(2, 9).Value + 1
@@ -48,7 +48,7 @@ class Simu:
         den_down = self.sheet.Cells(nk + 1, 4).Value / 40.0
         den_rm2 = self.sheet.Cells(nk + 1, 5).Value / 350
         last_meter = self.sheet.Cells(nk + 1, 8).Value / 2.0
-        s_= [demand_GP, demand_ranp2, den_up, den_down, den_rm2, last_meter]
+        s_= [demand_GP, demand_ranp2, den_up, den_down, den_rm2, last_meter] #, last_meter
         r = self.sheet.Cells(nk + 1, 7).Value / 1.04
         return s_ , r
 
@@ -117,13 +117,14 @@ class Simu:
 
     def run(self, aim_rtg=410):
         self._open_xlsm()
-        observation = self._init_env()
+        observation = self._init_env()[:self.args.c_in]
         rtg = [[aim_rtg]]
         s, a, t = [], [], []
         for i in tqdm(range(self.args.episode_num)):
             s, a, t = self._update_historical_seq(observation, i, s, a, t)
             action = self._decide_action(s, a, rtg, t).cpu().item()
             observation, reward = self._sim(action)
+            observation = observation[:self.args.c_in]
             rtg = self._update_rtg(rtg, reward)
             a = self._update_a(a, action)
         DtcDenSum = self.SheetDen.Cells(1, 29).Value

@@ -30,7 +30,7 @@ class Exp:
 
     def _get_data(self, batch=None):
         b_sz = batch if batch is not None else self.args.batch_size
-        data_set = STAR_Dataset(self.args.data_path, self.args.block_size, self.args.if_total_rtg)
+        data_set = STAR_Dataset(self.args.data_path, self.args.block_size, self.args.c_in, self.args.if_total_rtg)
         data_loader = DataLoader(data_set, batch_size=b_sz, drop_last=self.args.drop_last, shuffle=True)
         return data_set, data_loader
 

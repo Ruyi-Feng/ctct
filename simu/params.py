@@ -1,5 +1,7 @@
 import argparse
 
+##### 仿真的参数
+
 def params():
     ###### simu params ######
     parser = argparse.ArgumentParser(description='transformer parameters')
@@ -18,6 +20,7 @@ def params():
     parser.add_argument('--save_path', type=str, default='./checkpoints/', help='location of model checkpoints')
     parser.add_argument('--vocab_size', type=int, default=8, help='action vocab_size')
     parser.add_argument('--block_size', type=int, default=30, help='block_size = context_length')
+    parser.add_argument('--c_in', type=int, default=5, help='state dimension')
 
     # net settings
     parser.add_argument('--d_model', type=int, default=128, help='dimension of model')
