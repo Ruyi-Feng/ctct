@@ -3,6 +3,13 @@ import os
 
 
 def add_total_rtg(data_path) -> None:
+    """
+    Calculates the total reward and adds a new column "total_rtg" to the given dataset.
+    Args:
+        data_path (str): The path to the CSV file containing the dataset.
+    Returns:
+        None
+    """
     data = pd.read_csv(data_path)
     total_rtg = data["Reward"].sum()
     cum = data["Reward"].cumsum().values
