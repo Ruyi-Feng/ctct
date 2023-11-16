@@ -9,13 +9,21 @@ class STAR_Dataset(Dataset):
                  data_path: str,
                  block_size: int,
                  c_in: int=5,
-                 if_total_rtg: bool=False) -> None:
+                 if_total_rtg: bool=False,
+                 if_noise: bool=False,
+                 noise_rate: float=0.1,
+                 noise_range: typing.Tuple[float, float]=(-0.1, 0.1)) -> None:
+        DIM = 3
         self.data_path = data_path
         self.block_size = block_size
         self.c_in = c_in
         self.index = []
         self.f_dict = {}
         self.if_total_rtg = if_total_rtg
+        self.if_noise = if_noise
+        self.noise_rate = noise_rate
+        self.noise_range = noise_range
+        self.dim = DIM
         self._gene_data_index()
 
     def _add_index(self, file_path: str, fl_line: int) -> None:
@@ -41,6 +49,15 @@ class STAR_Dataset(Dataset):
         [rtg.append(sum(rwd[i:])) for i in range(len(rwd))]
         return np.expand_dims(np.array(rtg), axis=1).astype(np.float32)
 
+    def _add_noise(self, state: np.array) -> np.array:
+        # dim=3 +-0.3 0.2
+        length = state.shape[0]
+        sample_list = [i for i in range(length)]
+        index = random.sample(sample_list, int(length * self.noise_rate))
+        for i in index:
+            state[i][self.dim] += np.random.uniform(self.noise_range[0], self.noise_range[1])
+        return state
+
     def _load_data(self, path: str, start: int=-1, end: int=-1) -> tuple:
         # Step,
         # Observation_dim_1-6
@@ -61,6 +78,8 @@ class STAR_Dataset(Dataset):
             data.append(line)
         data = np.array(data)
         states = data[:, 1:(1+self.c_in)].astype(np.float32)   ## 1：6   1:7
+        if self.if_noise:
+            state = self._add_noise(state)
         timesteps = np.expand_dims(data[:, 0], axis=1).astype(np.int64)
         actions = np.expand_dims(data[:, 7], axis=1).astype(np.int64)
         if self.if_total_rtg:

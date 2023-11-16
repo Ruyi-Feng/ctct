@@ -9,8 +9,11 @@ def params():
     parser.add_argument('--save_path', type=str, default='./checkpoints/', help='location of model checkpoints')
     parser.add_argument('--data_path', type=str, default='./data/total/')
     parser.add_argument('--vocab_size', type=int, default=8, help='action vocab_size')
-    parser.add_argument('--block_size', type=int, default=30, help='block_size = context_length')
+    parser.add_argument('--block_size', type=int, default=10, help='block_size = context_length')
     parser.add_argument('--c_in', type=int, default=5, help='state dimension')
+    parser.add_argument('--if_noise', type=bool, default=False, help='if noise')
+    parser.add_argument('--noise_rate', type=float, default=0.2, help='noise rate')
+    parser.add_argument('--noise_range', type=tuple, default=(-0.3, 0.3), help='noise range')
 
     # training settings
     parser.add_argument('--learning_rate', type=float, default=0.00001, help='original leaning rate')
